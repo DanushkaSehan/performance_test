@@ -2,6 +2,7 @@ import time
 import numpy as np
 import psutil
 import os
+import platform
 
 def matrix_multiplication_performance(matrix_size):
     # Initialize matrices
@@ -30,25 +31,38 @@ def matrix_multiplication_performance(matrix_size):
     final_write_bytes = disk_io_final.write_bytes
 
     # Calculations
-    execution_time = end_time - start_time  # T
-    cpu_usage = psutil.cpu_percent(interval=None)  # Approx CPU usage %
-    memory_usage_percent = final_memory_percent  # Memory usage %
+    execution_time = end_time - start_time
+    cpu_usage = psutil.cpu_percent(interval=None)
+    memory_usage_percent = final_memory_percent
     total_data_transferred_mb = ((final_read_bytes - initial_read_bytes) +
                                  (final_write_bytes - initial_write_bytes)) / (1024 * 1024)
-
     disk_throughput = total_data_transferred_mb / execution_time if execution_time > 0 else 0
     pei = 1 / (execution_time * cpu_usage * memory_usage_percent) if cpu_usage > 0 and memory_usage_percent > 0 else 0
 
-    return execution_time, cpu_usage, memory_usage_percent, total_data_transferred_mb, disk_throughput, pei
+    return {
+        "matrix_size": matrix_size,
+        "execution_time": execution_time,
+        "cpu_usage": cpu_usage,
+        "memory_usage_percent": memory_usage_percent,
+        "total_data_transferred_mb": total_data_transferred_mb,
+        "disk_throughput": disk_throughput,
+        "pei": pei
+    }
 
 if __name__ == "__main__":
-    matrix_size = 1000
+    matrix_size = 1000  # Adjustable
     results = matrix_multiplication_performance(matrix_size)
 
+    print("\n--- System & Test Details ---")
+    print(f"OS                 : {platform.system()} {platform.release()}")
+    print(f"CPU Cores          : {psutil.cpu_count(logical=True)}")
+    print(f"Total RAM          : {round(psutil.virtual_memory().total / (1024 ** 3), 2)} GB")
+    print(f"Matrix Size        : {results['matrix_size']} x {results['matrix_size']}")
+
     print("\n--- Performance Metrics ---")
-    print(f"Execution Time (T)           : {results[0]:.4f} seconds")
-    print(f"CPU Utilization (%)          : {results[1]:.2f}%")
-    print(f"Memory Utilization (%)       : {results[2]:.2f}%")
-    print(f"Total Data Transferred (MB)  : {results[3]:.4f} MB")
-    print(f"Disk Throughput (MB/s)       : {results[4]:.4f} MB/s")
-    print(f"Performance Efficiency Index : {results[5]:.6f}")
+    print(f"Execution Time (T)           : {results['execution_time']:.4f} seconds")
+    print(f"CPU Utilization (%)          : {results['cpu_usage']:.2f}%")
+    print(f"Memory Utilization (%)       : {results['memory_usage_percent']:.2f}%")
+    print(f"Total Data Transferred (MB)  : {results['total_data_transferred_mb']:.4f} MB")
+    print(f"Disk Throughput (MB/s)       : {results['disk_throughput']:.4f} MB/s")
+    print(f"Performance Efficiency Index : {results['pei']:.6f}")
