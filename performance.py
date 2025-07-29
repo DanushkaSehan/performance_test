@@ -8,64 +8,47 @@ def matrix_multiplication_performance(matrix_size):
     matrix_a = np.random.rand(matrix_size, matrix_size)
     matrix_b = np.random.rand(matrix_size, matrix_size)
 
-    # Get current process for memory metrics
     current_process = psutil.Process(os.getpid())
 
-    # Capture initial system metrics
-    try:
-        initial_cpu_percent = psutil.cpu_percent(interval=None)
-        initial_memory_mb = current_process.memory_info().rss / (1024 * 1024)  # Convert to MB
-        disk_io_initial = psutil.disk_io_counters()
-        initial_read_bytes = disk_io_initial.read_bytes if disk_io_initial else 0
-        initial_write_bytes = disk_io_initial.write_bytes if disk_io_initial else 0
-    except (psutil.NoSuchProcess, psutil.AccessDenied, AttributeError) as e:
-        print(f"Error accessing initial system metrics: {e}")
-        return None
+    # Initial metrics
+    start_cpu_times = psutil.cpu_times_percent(interval=None)
+    initial_memory_percent = psutil.virtual_memory().percent
+    disk_io_initial = psutil.disk_io_counters()
+    initial_read_bytes = disk_io_initial.read_bytes
+    initial_write_bytes = disk_io_initial.write_bytes
 
-    # Perform matrix multiplication and measure time
+    # Execution time measurement
     start_time = time.time()
     result_matrix = np.dot(matrix_a, matrix_b)
     end_time = time.time()
 
-    # Capture final system metrics
-    try:
-        final_cpu_percent = psutil.cpu_percent(interval=1)
-        final_memory_mb = current_process.memory_info().rss / (1024 * 1024)  # Convert to MB
-        disk_io_final = psutil.disk_io_counters()
-        final_read_bytes = disk_io_final.read_bytes if disk_io_final else 0
-        final_write_bytes = disk_io_final.write_bytes if disk_io_final else 0
-    except (psutil.NoSuchProcess, psutil.AccessDenied, AttributeError) as e:
-        print(f"Error accessing final system metrics: {e}")
-        return None
+    # Final metrics
+    end_cpu_times = psutil.cpu_times_percent(interval=1)
+    final_memory_percent = psutil.virtual_memory().percent
+    disk_io_final = psutil.disk_io_counters()
+    final_read_bytes = disk_io_final.read_bytes
+    final_write_bytes = disk_io_final.write_bytes
 
-    # Calculate performance metrics
-    execution_time = end_time - start_time
-    average_cpu_percent = (initial_cpu_percent + final_cpu_percent) / 2
-    total_memory_used_mb = final_memory_mb
-    memory_change_mb = final_memory_mb - initial_memory_mb
-    disk_read_mb = (final_read_bytes - initial_read_bytes) / (1024 * 1024)  # Convert to MB
-    disk_write_mb = (final_write_bytes - initial_write_bytes) / (1024 * 1024)  # Convert to MB
+    # Calculations
+    execution_time = end_time - start_time  # T
+    cpu_usage = psutil.cpu_percent(interval=None)  # Approx CPU usage %
+    memory_usage_percent = final_memory_percent  # Memory usage %
+    total_data_transferred_mb = ((final_read_bytes - initial_read_bytes) +
+                                 (final_write_bytes - initial_write_bytes)) / (1024 * 1024)
 
-    return (
-        execution_time,
-        average_cpu_percent,
-        total_memory_used_mb,
-        memory_change_mb,
-        disk_read_mb,
-        disk_write_mb
-    )
+    disk_throughput = total_data_transferred_mb / execution_time if execution_time > 0 else 0
+    pei = 1 / (execution_time * cpu_usage * memory_usage_percent) if cpu_usage > 0 and memory_usage_percent > 0 else 0
+
+    return execution_time, cpu_usage, memory_usage_percent, total_data_transferred_mb, disk_throughput, pei
 
 if __name__ == "__main__":
-    matrix_size = 1000  # Adjust based on system capability
+    matrix_size = 1000
     results = matrix_multiplication_performance(matrix_size)
 
-    if results:
-        print("\n--- Performance Metrics ---")
-        print(f"Execution Time        : {results[0]:.4f} seconds")
-        print(f"Average CPU Usage     : {results[1]:.2f}%")
-        print(f"Total Memory Used     : {results[2]:.2f} MB")
-        print(f"Memory Usage Change   : {results[3]:.2f} MB")
-        print(f"Disk Read I/O         : {results[4]:.4f} MB")
-        print(f"Disk Write I/O        : {results[5]:.4f} MB")
-    else:
-        print("Failed to collect performance metrics.")
+    print("\n--- Performance Metrics (Assignment Format) ---")
+    print(f"Execution Time (T)           : {results[0]:.4f} seconds")
+    print(f"CPU Utilization (%)          : {results[1]:.2f}%")
+    print(f"Memory Utilization (%)       : {results[2]:.2f}%")
+    print(f"Total Data Transferred (MB)  : {results[3]:.4f} MB")
+    print(f"Disk Throughput (MB/s)       : {results[4]:.4f} MB/s")
+    print(f"Performance Efficiency Index : {results[5]:.6f}")
