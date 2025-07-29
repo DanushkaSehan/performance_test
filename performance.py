@@ -45,7 +45,7 @@ if __name__ == "__main__":
     matrix_size = 1000
     results = matrix_multiplication_performance(matrix_size)
 
-    print("\n--- Performance Metrics (Assignment Format) ---")
+    print("\n--- Performance Metrics ---")
     print(f"Execution Time (T)           : {results[0]:.4f} seconds")
     print(f"CPU Utilization (%)          : {results[1]:.2f}%")
     print(f"Memory Utilization (%)       : {results[2]:.2f}%")
